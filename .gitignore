@@ -1,0 +1,4 @@
+# prior-art local state (do not version-control gate evidence generated in target repos)
+*.tmp
+.*.swp
+__pycache__/

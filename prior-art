@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+if command -v readlink >/dev/null 2>&1; then
+  RESOLVED_PATH="$(readlink -f "${SCRIPT_PATH}" 2>/dev/null || true)"
+  if [ -n "${RESOLVED_PATH}" ]; then
+    SCRIPT_PATH="${RESOLVED_PATH}"
+  fi
+fi
+SCRIPT_DIR="$(cd "$(dirname "${SCRIPT_PATH}")" && pwd)"
+
+usage() {
+  cat <<'USAGE_EOF'
+Usage:
+  prior-art apply [repo_path]
+  prior-art check [repo_path]
+  prior-art install
+  prior-art uninstall
+  prior-art help
+
+Commands:
+  apply       Create or refresh the Prior-Art Directive managed block in the
+              target repository's AGENTS.md, install the prior-art gate contract
+              (logs/prior-art/README.md) and the fail-closed gate checker
+              (scripts/prior_art_check_gate.sh), and regenerate exact
+              CLAUDE.md, GEMINI.md, and HERMES.md mirrors of AGENTS.md.
+              Run with no argument to target the current directory; otherwise
+              pass one absolute repository path.
+  check       Run the fail-closed daily prior-art gate checker for the target
+              repository (defaults to the current directory).
+  install     Install the prior-art CLI into ~/.local/bin so it is on PATH.
+  uninstall   Remove the installed ~/.local/bin/prior-art command.
+  help        Show this help.
+
+The managed block installed by `prior-art apply` uses the markers
+`<!-- prior-art:managed:start -->` and `<!-- prior-art:managed:end -->`.
+It is a sibling managed region to blocks installed by feedback-hub, piecrust,
+retcon, chug, terminable, and publicist. Re-running `prior-art apply` refreshes
+the block in place without disturbing adjacent managed regions.
+USAGE_EOF
+}
+
+COMMAND="${1:-help}"
+
+case "${COMMAND}" in
+  apply|init|update)
+    shift
+    exec "${SCRIPT_DIR}/scripts/prior_art_apply.sh" "$@"
+    ;;
+  check|gate|prior-art-check)
+    shift
+    exec "${SCRIPT_DIR}/scripts/prior_art_check_gate.sh" "$@"
+    ;;
+  install)
+    shift
+    exec "${SCRIPT_DIR}/scripts/install_prior_art.sh" "$@"
+    ;;
+  uninstall)
+    shift
+    exec "${SCRIPT_DIR}/scripts/uninstall_prior_art.sh" "$@"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "Error: unknown command: ${COMMAND}" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
